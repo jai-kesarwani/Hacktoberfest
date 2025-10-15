@@ -1,0 +1,127 @@
+// First Come First Serve(FCFS) Job Scheduling Program 
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <iomanip>
+#include <string>
+
+using namespace std;
+
+// Structure to hold job details
+struct Job {
+    int id;           // Job ID (e.g., P1, P2, ...)
+    int arrivalTime;  // Time job arrives in the queue
+    int burstTime;    // Time required to execute the job
+    int completionTime;
+    int turnAroundTime;
+    int waitingTime;
+};
+
+// Function to handle robust integer input
+int getIntInput(const string& prompt) {
+    int value;
+    cout << prompt;
+    while (!(cin >> value) || value < 0) {
+        cout << "Invalid or negative input. Please enter a positive number: ";
+        cin.clear();
+        cin.ignore(10000, '\n');
+    }
+    return value;
+}
+
+// Function to get job details from the user
+vector<Job> getJobsFromUser() {
+    int numJobs = getIntInput("\nEnter the total number of jobs: ");
+    vector<Job> jobs;
+
+    cout << "\n--- Enter Job Details ---\n";
+    for (int i = 0; i < numJobs; ++i) {
+        Job newJob;
+        newJob.id = i + 1;
+        cout << "\nJob " << newJob.id << ":\n";
+        
+        // FCFS can handle arrival time 0, but times must be non-negative
+        newJob.arrivalTime = getIntInput("  Enter Arrival Time (AT): ");
+        
+        // Burst time must be greater than 0
+        do {
+            newJob.burstTime = getIntInput("  Enter Burst Time (BT): ");
+            if (newJob.burstTime <= 0) {
+                cout << "Burst Time must be greater than 0. Try again.\n";
+            }
+        } while (newJob.burstTime <= 0);
+
+        jobs.push_back(newJob);
+    }
+    return jobs;
+}
+
+// Function to calculate and display FCFS scheduling metrics
+void calculateFCFS(vector<Job>& jobs) {
+    if (jobs.empty()) {
+        cout << "\nNo jobs to schedule.\n";
+        return;
+    }
+
+    int currentTime = 0;
+    float totalWaitTime = 0;
+    float totalTAT = 0;
+    int n = jobs.size();
+
+    // Sort jobs by Arrival Time (FCFS criterion).
+    // The sorting logic is crucial here.
+    sort(jobs.begin(), jobs.end(), [](const Job& a, const Job& b) {
+        return a.arrivalTime < b.arrivalTime;
+    });
+
+    cout << "\n--- FCFS Scheduling Simulation Results ---\n";
+
+    for (int i = 0; i < n; ++i) {
+        // 1. Check for CPU Idle time: If the CPU is free before the next job arrives
+        if (currentTime < jobs[i].arrivalTime) {
+            currentTime = jobs[i].arrivalTime; 
+        }
+        
+        // 2. Calculate Completion Time (CT)
+        jobs[i].completionTime = currentTime + jobs[i].burstTime;
+        currentTime = jobs[i].completionTime;
+
+        // 3. Calculate Turnaround Time (TAT = CT - AT)
+        jobs[i].turnAroundTime = jobs[i].completionTime - jobs[i].arrivalTime;
+        totalTAT += jobs[i].turnAroundTime;
+
+        // 4. Calculate Waiting Time (WT = TAT - BT)
+        jobs[i].waitingTime = jobs[i].turnAroundTime - jobs[i].burstTime;
+        totalWaitTime += jobs[i].waitingTime;
+    }
+
+    // Display Results Table
+    cout << "\n" << setw(5) << "Job" << setw(10) << "AT" << setw(10) << "BT"
+         << setw(10) << "CT" << setw(10) << "TAT" << setw(10) << "WT" << "\n";
+    cout << "---------------------------------------------------------\n";
+
+    for (const auto& job : jobs) {
+        cout << setw(5) << job.id
+             << setw(10) << job.arrivalTime
+             << setw(10) << job.burstTime
+             << setw(10) << job.completionTime
+             << setw(10) << job.turnAroundTime
+             << setw(10) << job.waitingTime << "\n";
+    }
+
+    // Display Averages
+    cout << fixed << setprecision(2);
+    cout << "\nAverage Turnaround Time (TAT): " << totalTAT / n;
+    cout << "\nAverage Waiting Time (WT):     " << totalWaitTime / n << "\n";
+}
+
+int main() {
+    // Get job list from user input
+    vector<Job> jobList = getJobsFromUser();
+
+    // Calculate and display FCFS results
+    calculateFCFS(jobList);
+
+    return 0;
+}
