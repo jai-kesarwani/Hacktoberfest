@@ -1,0 +1,335 @@
+# Movie Ticket Booking Program 
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <ctime>
+#include <iomanip>
+#include <cstdlib> // For system()
+
+using namespace std;
+
+// Function to handle robust integer input
+int getIntInput(const string& prompt) {
+    int value;
+    cout << prompt;
+    // Loop until a valid integer is entered
+    while (!(cin >> value)) {
+        cout << "\t\t\tInvalid input. Please enter a number: ";
+        cin.clear(); // Clear error flags
+        cin.ignore(10000, '\n'); // Discard bad input
+    }
+    cin.ignore(10000, '\n'); // Clear the buffer after successful int read
+    return value;
+}
+
+// Global constants for ticket pricing
+const int NORMAL_PRICE = 400;
+const int GOLD_PRICE = 700;
+const double DT_CARD_DISCOUNT = 0.10; // 10% discount
+
+// Enumerations for better readability
+enum Movie {
+    AVENGERS_ENDGAME = 1,
+    SUPER_GIRL,
+    DEADPOOL_3,
+    FREE_GUY,
+    READY_OR_NOT
+};
+
+// Timing constants (used for mapping the user's choice to a display string)
+enum Timing {
+    T0800 = 1, T0900, T1100, T1250, T1300, T1450, T1500, T1800, T2000, T2100, T2200, T0100
+};
+
+// -------------------------------------------------------------
+// --- Customer Data Class ---
+// -------------------------------------------------------------
+class Customer {
+public:
+    string name;
+    string contactNo;
+    long long dtCardID = 0; 
+    // NEW FIELDS to store booking details
+    int numTicketsBooked = 0; 
+    int showTimingValue = 0; // Stores the enum value of the selected timing
+    string movieTitle;
+
+    // Helper to get timing string based on the enum value
+    string getTimingStr(int choiceValue) const {
+        switch (choiceValue) {
+            case T0800: return "08:00 AM";
+            case T0900: return "09:00 AM";
+            case T1100: return "11:00 AM";
+            case T1250: return "12:50 PM";
+            case T1300: return "01:00 PM";
+            case T1450: return "02:50 PM";
+            case T1500: return "03:00 PM";
+            case T1800: return "06:00 PM";
+            case T2000: return "08:00 PM";
+            case T2100: return "09:00 PM";
+            case T2200: return "10:00 PM";
+            case T0100: return "01:00 AM";
+            default: return "N/A";
+        }
+    }
+
+    void displayTicketConfirmation() const {
+        cout << "\n\n\n\t\t\t--- Booking Confirmation ---";
+        cout << "\n\t\t\tName:\t\t" << name;
+        cout << "\n\t\t\tContact No:\t" << contactNo;
+        cout << "\n\t\t\tMovie:\t\t" << movieTitle;
+        cout << "\n\t\t\tShow Timing:\t" << getTimingStr(showTimingValue);
+        cout << "\n\t\t\tTickets:\t" << numTicketsBooked;
+        cout << "\n\t\t\t----------------------------";
+    }
+};
+
+// -------------------------------------------------------------
+// --- DTCard Registration Class (Inherits basic customer data) ---
+// -------------------------------------------------------------
+class DTCard : public Customer {
+public:
+    string address;
+    string emailID;
+
+    void registerCard() {
+        cout << "\n\t\t--- DTCard Registration ---\n";
+        cout << "\t\tEnter your full name: ";
+        getline(cin, name);
+        cout << "\t\tEnter your mobile number: ";
+        getline(cin, contactNo);
+        cout << "\t\tEnter your address: ";
+        getline(cin, address);
+        cout << "\t\tEnter your email ID: ";
+        getline(cin, emailID);
+
+        // Generate a random 7-digit ID (safer than time-based, but still simple)
+        srand(time(0));
+        dtCardID = 1000000LL + (rand() % 9000000LL);
+
+        // File I/O for saving card data (simplified for this console app)
+        ofstream fout("dtcard_data.txt", ios::app);
+        fout << "Name: " << name << "\n";
+        fout << "Card Number: " << dtCardID << "\n";
+        fout << "------------------------\n";
+        fout.close();
+
+        cout << "\n\t\t\tSUCCESS! Your new DTCard ID is: " << dtCardID;
+        cout << "\n\t\tIt will take us a week to complete your registration.";
+        
+        // Display benefits
+        char f;
+        cout << "\n\n\t\tView Card Benefits (y/n)? ";
+        cin >> f;
+        cin.ignore(10000, '\n');
+        if (tolower(f) == 'y') {
+            cout << "\n\t\t--- DTCard Privileges ---";
+            cout << "\n\t\t1. **10% instant discount** on every ticket purchase.";
+            cout << "\n\t\t2. Priority booking for upcoming movies and preferred seating.";
+            cout << "\n\t\t3. Exclusive event invitations and updates.";
+        }
+    }
+};
+
+// -------------------------------------------------------------
+// --- Payment Function ---
+// -------------------------------------------------------------
+void pay(int numTickets, Customer& cust) {
+    int ticketClass = getIntInput("\n\t\t\tChoose Ticket Class (1.Normal / 2.Gold): ");
+    
+    int pricePerTicket = (ticketClass == 2) ? GOLD_PRICE : NORMAL_PRICE;
+    double baseAmount = numTickets * pricePerTicket;
+    double finalAmount = baseAmount;
+    
+    cout << "\n\t\t\tBase Amount: Rs " << fixed << setprecision(2) << baseAmount;
+    
+    // DTCard Discount Check
+    char hasCard;
+    cout << "\n\t\t\tDo you have a registered DTCard (y/n)? ";
+    cin >> hasCard;
+    cin.ignore(10000, '\n');
+    
+    if (tolower(hasCard) == 'y') {
+        // In a real system, you'd validate this ID against the file/database
+        long long enteredCardID = getIntInput("\t\t\tEnter your 7-digit DTCard ID: ");
+        
+        // Simplified discount logic
+        finalAmount = baseAmount * (1.0 - DT_CARD_DISCOUNT);
+        cout << "\t\t\tDTCard Discount Applied! (" << (DT_CARD_DISCOUNT * 100) << "%)";
+    }
+
+    cout << "\n\t\t\t-----------------------------------";
+    cout << "\n\t\t\tFinal Amount Due: Rs " << fixed << setprecision(2) << finalAmount;
+    cout << "\n\t\t\t-----------------------------------";
+    
+    // --- Payment Process (Placeholder for security) ---
+    char payByCard;
+    cout << "\n\t\t\tProceed to payment by Card (y/n)? ";
+    cin >> payByCard;
+    cin.ignore(10000, '\n');
+    
+    if (tolower(payByCard) == 'y') {
+        string cardName;
+        cout << "\t\t\tCard Holder Name: ";
+        getline(cin, cardName);
+        cout << "\t\t\tEnter 16-digit Card Number: ";
+        string cardNumber;
+        getline(cin, cardNumber);
+
+        cout << "\n\t\t\tPayment of Rs " << finalAmount << " successful!";
+    } else {
+        cout << "\n\t\t\tPlease pay Rs " << finalAmount << " at the counter.";
+    }
+    cout << "\n\t\t\tPress ENTER to continue...";
+    getchar(); // Wait for user to press ENTER
+}
+
+
+// -------------------------------------------------------------
+// --- Main Booking Logic ---
+// -------------------------------------------------------------
+void bookTickets(Customer& cust) {
+    system("CLS");
+    
+    cout << "\n\n\t\t\tThe Shows are :";
+    cout << "\n\n\t\t\t" << AVENGERS_ENDGAME << ". Avengers: Endgame";
+    cout << "\n\t\t\t" << SUPER_GIRL << ". Super Girl";
+    cout << "\n\t\t\t" << DEADPOOL_3 << ". Deadpool 3";
+    cout << "\n\t\t\t" << FREE_GUY << ". Free Guy";
+    cout << "\n\t\t\t" << READY_OR_NOT << ". Ready or Not\n";
+    
+    int movieChoice = getIntInput("\t\t\tEnter Your Movie Choice: ");
+    
+    // Map movie choice to a title and available timings
+    vector<int> timings;
+    if (movieChoice == AVENGERS_ENDGAME) {
+        cust.movieTitle = "Avengers: Endgame";
+        timings = {T0800, T1300, T1450, T1800, T2100, T0100};
+    } else if (movieChoice == SUPER_GIRL) {
+        cust.movieTitle = "Super Girl";
+        timings = {T0900, T1100, T1250, T1500, T2000, T2200};
+    } else if (movieChoice == DEADPOOL_3) {
+        cust.movieTitle = "Deadpool 3";
+        timings = {T0800, T1300, T1450, T1800, T2100, T0100};
+    } else if (movieChoice == FREE_GUY) {
+        cust.movieTitle = "Free Guy";
+        timings = {T0800, T1300, T1450, T1800, T2100, T0100};
+    } else if (movieChoice == READY_OR_NOT) {
+        cust.movieTitle = "Ready or Not";
+        timings = {T0800, T1300, T1450, T1800, T2100, T0100};
+    } else {
+        cout << "\n\t\t\tInvalid movie choice.";
+        cust.numTicketsBooked = 0; // Reset booking status
+        return;
+    }
+    
+    system("CLS");
+    cout << "\n\t\t\tTimings for " << cust.movieTitle << ":";
+    for (size_t i = 0; i < timings.size(); ++i) {
+        cout << "\n\t\t\t" << i + 1 << ". " << cust.getTimingStr(timings[i]);
+    }
+
+    int timingIndex = getIntInput("\n\n\t\t\tSelect the timing number: ") - 1;
+    if (timingIndex < 0 || timingIndex >= timings.size()) {
+        cout << "\n\t\t\tInvalid timing selection. Aborting booking.";
+        cust.numTicketsBooked = 0;
+        return;
+    }
+    int selectedTimingValue = timings[timingIndex];
+
+    cout << "\n\t\t\tEnter your full name: ";
+    getline(cin, cust.name);
+    cout << "\t\t\tEnter your contact number: ";
+    getline(cin, cust.contactNo);
+    
+    int numTickets = getIntInput("\t\t\tEnter number of tickets to purchase: ");
+    
+    // **CRITICAL: Store the booking details in the Customer object**
+    cust.numTicketsBooked = numTickets;
+    cust.showTimingValue = selectedTimingValue; 
+
+    pay(numTickets, cust);
+    cust.displayTicketConfirmation();
+}
+
+// -------------------------------------------------------------
+// --- Main Program ---
+// -------------------------------------------------------------
+int main() {
+    Customer currentCustomer;
+    DTCard dtCardRegister;
+    int choice;
+
+    do {
+        system("CLS");
+        cout << "\n\t\t-----------------------------------------------";
+        cout << "\n\t\t             Movie Ticket Booking System       ";
+        cout << "\n\t\t-----------------------------------------------";
+        cout << "\n\t\t\t<1> Movie Timings & Booking";
+        cout << "\n\t\t\t<2> Recieving Ticket Status";
+        cout << "\n\t\t\t<3> Contact Us";
+        cout << "\n\t\t\t<4> DTCard Registration";
+        cout << "\n\t\t\t<5> Exit \n\n";
+        
+        choice = getIntInput("\t\t\tEnter Your Choice: ");
+
+        switch (choice) {
+            case 1:
+                bookTickets(currentCustomer);
+                break;
+
+            case 2:
+                system("CLS");
+                cout << "\n\n\t\t\t--- Recieving Ticket Status ---";
+                
+                // **UPDATED LOGIC: Show name, contact no, and no. of tickets**
+                if (currentCustomer.numTicketsBooked > 0) {
+                    cout << "\n\t\t\tBooking Found!";
+                    cout << "\n\t\t\tName:\t\t\t" << currentCustomer.name;
+                    cout << "\n\t\t\tContact No:\t\t" << currentCustomer.contactNo;
+                    cout << "\n\t\t\tTickets Booked:\t\t" << currentCustomer.numTicketsBooked;
+                    cout << "\n\t\t\tMovie:\t\t\t" << currentCustomer.movieTitle;
+                    cout << "\n\t\t\tShow Time:\t\t" << currentCustomer.getTimingStr(currentCustomer.showTimingValue);
+                    cout << "\n\n\t\t\tPlease present this information at the counter for printout.";
+                } else {
+                    cout << "\n\t\t\tNo ticket booking found for this session. Please book a ticket first (Option 1).";
+                }
+                // --- Original placeholder message ---
+                cout << "\n\n\t\t\t(The system does not have a printable function yet.)";
+                cout << "\n\t\t\tPress ENTER to return to menu...";
+                getchar();
+                break;
+
+            case 3:
+                system("CLS");
+                cout << "\n\n\t\t\tContact Us:";
+                cout << "\n\t\t\tPhone: 1800-CINEMA (Toll-Free)";
+                cout << "\n\t\t\tEmail: support@cinemas.com";
+                cout << "\n\t\t\tPress ENTER to return to menu...";
+                getchar();
+                break;
+
+            case 4:
+                system("CLS");
+                dtCardRegister.registerCard();
+                cout << "\n\t\t\tPress ENTER to return to menu...";
+                getchar();
+                break;
+
+            case 5:
+                cout << "\n\t\t\tThank you for using the system. Goodbye! 👋\n";
+                exit(0);
+                break;
+
+            default:
+                cout << "\n\t\t\tInvalid option. Please try again.";
+                cout << "\n\t\t\tPress ENTER to return to menu...";
+                getchar();
+        }
+        
+    } while (true); // Loop runs until option 5 is selected
+
+    return 0;
+}
